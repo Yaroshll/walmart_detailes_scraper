@@ -3,8 +3,9 @@ import { chromium } from "playwright";
 // Browser configuration constants
 const BROWSER_CONFIG = {
   LAUNCH_OPTIONS: {
-    headless: true,
+    headless: false,
     timeout: 12000,
+    channel: 'chrome', // ✅ التعديل الأساسي: استخدام Chrome المثبت مسبقاً
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -41,7 +42,19 @@ export async function launchBrowser() {
     return browser;
   } catch (error) {
     console.error("❌ Failed to launch browser:", error.message);
-    throw error;
+    
+    // ✅ محاولة بديلة إذا فشل استخدام Chrome
+    console.log("🔄 Trying fallback method without channel...");
+    try {
+      const fallbackOptions = { ...BROWSER_CONFIG.LAUNCH_OPTIONS };
+      delete fallbackOptions.channel; // إزالة channel من الخيارات
+      const browser = await chromium.launch(fallbackOptions);
+      console.log("✅ Browser launched with fallback method");
+      return browser;
+    } catch (fallbackError) {
+      console.error("❌ Fallback also failed:", fallbackError.message);
+      throw error;
+    }
   }
 }
 
@@ -94,5 +107,25 @@ export async function createPage(context) {
   } catch (error) {
     console.error("❌ Failed to create page:", error.message);
     throw error;
+  }
+}
+
+/**
+ * Closes the browser instance properly
+ * 
+ * @param {Browser} browser - Browser instance to close
+ * @returns {Promise<void>}
+ * 
+ * @example
+ * await closeBrowser(browser);
+ */
+export async function closeBrowser(browser) {
+  try {
+    if (browser && browser.isConnected()) {
+      await browser.close();
+      console.log("👋 Browser closed successfully");
+    }
+  } catch (error) {
+    console.error("❌ Error closing browser:", error.message);
   }
 }
