@@ -1,10 +1,15 @@
 export async function parseProduct(page, url) {
-
   // ===== BRAND =====
-  const brand = await page.locator('a[data-dca-name="ItemBrandLink"]').innerText().catch(() => "");
+  const brand = await page
+    .locator('a[data-dca-name="ItemBrandLink"]')
+    .innerText()
+    .catch(() => "");
 
   // ===== TITLE =====
-  const rawTitle = await page.locator('#main-title').innerText().catch(() => "");
+  const rawTitle = await page
+    .locator("#main-title")
+    .innerText()
+    .catch(() => "");
   const formattedTitle = rawTitle.replace(brand, `${brand},`).trim();
 
   // ===== HANDLE =====
@@ -12,51 +17,70 @@ export async function parseProduct(page, url) {
 
   // ===== DESCRIPTION BODY (HTML UL) =====
   let bodyHtml = "";
-  if (await page.locator('#product-description-atf ul').count() > 0) {
-    bodyHtml = `<ul>${await page.locator('#product-description-atf ul').innerHTML()}</ul>`;
-  } else if (await page.locator('div[data-testid="ip-smart-summary-dom-purify"] ul').count() > 0) {
-    bodyHtml = `<ul>${await page.locator('div[data-testid="ip-smart-summary-dom-purify"] ul').innerHTML()}</ul>`;
+  if ((await page.locator("#product-description-atf ul").count()) > 0) {
+    bodyHtml = `<ul>${await page
+      .locator("#product-description-atf ul")
+      .innerHTML()}</ul>`;
+  } else if (
+    (await page
+      .locator('div[data-testid="ip-smart-summary-dom-purify"] ul')
+      .count()) > 0
+  ) {
+    bodyHtml = `<ul>${await page
+      .locator('div[data-testid="ip-smart-summary-dom-purify"] ul')
+      .innerHTML()}</ul>`;
   }
 
   // ===== VARIANTS SECTION =====
-  const variants = [];
-  const optionName = await page.locator('.mid-gray.mb2 span.b').innerText()
-    .then(t => t.replace(":", "").trim())
-    .catch(() => "Option");
+// ========== VARIANTS NEW WAY — SAFE, FAST, 100% WORKS ==========
+const variants = [];
 
-  const variantTiles = page.locator('div[data-testid="variant-tile"] label');
-  const variantCount = await variantTiles.count();
+// get all variant inputs (radio buttons)
+const inputs = await page.$$eval(
+  'div[data-testid="variant-tile"] input',
+  els => els.map(e => ({ id: e.id, value: e.value }))
+);
 
-  for (let i = 0; i < variantCount; i++) {
-    const label = variantTiles.nth(i);
+// get option name
+const optionName = await page.locator('.mid-gray.mb2 span.b')
+  .innerText()
+  .then(t => t.replace(":", "").trim())
+  .catch(() => "Option");
 
-    // Read variant info: "selected, Pink, $11.49"
-    const variantInfo = await label.locator('span').nth(1).innerText();
-    const parts = variantInfo.split(",").map(s => s.trim());
+// loop through variants
+for (const v of inputs) {
+  
+  // switch variant without clicking UI
+  await page.evaluate((id) => {
+    document.getElementById(id)?.click();
+  }, v.id);
 
-    const isSelected = parts[0] === "selected";
-    const optionValue = parts[1];
-    const priceVal = parts[2].replace("$", "");
+  await page.waitForTimeout(800);
 
-    if (!isSelected) {
-      await label.click();
-      await page.waitForTimeout(1200);
-    }
+  // collect image
+  const imageSrc = await page.locator('img[data-testid="hero-image"]').getAttribute("src");
 
-    const imageSrc = await page.locator('img[data-testid="hero-image"]').getAttribute("src");
+  // collect price
+  let price = await page
+    .locator('[data-testid="price-display"] span')
+    .innerText()
+    .catch(() => "");
 
-    variants.push({
-      handle,
-      brandName: brand,
-      title: formattedTitle,
-      bodyHtml,
-      optionName,
-      optionValue,
-      priceInDollar: priceVal,
-      imageSrc,
-      url
-    });
-  }
+  price = price.replace("$", "").trim();
+
+  variants.push({
+    handle,
+    brandName: brand,
+    title: formattedTitle,
+    bodyHtml,
+    optionName,
+    optionValue: v.value,
+    priceInDollar: price,
+    imageSrc,
+    url
+  });
+}
+
 
   return variants;
 }

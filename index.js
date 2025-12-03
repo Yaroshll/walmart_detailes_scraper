@@ -7,7 +7,7 @@ import {
 } from "./helpers/browser.js";
 
 const productUrls = [
-  "https://www.walmart.com/ip/FEISEDY-Vintage-Square-Polarized-Mirrored-Pink-Sunglasses-for-Women-100-UV400-Outdoor-Driving-Fashion-Sunglasses-B2526/877502219?classType=VARIANT&athbdg=L1800&adsRedirect=true"
+  "https://www.walmart.com/ip/FEISEDY-Vintage-Square-Polarized-Mirrored-Pink-Sunglasses-for-Women-100-UV400-Outdoor-Driving-Fashion-Sunglasses-B2526/877502219?classType=VARIANT&athbdg=L1800&adsRedirect=true",
 ];
 
 async function start() {
@@ -19,8 +19,19 @@ async function start() {
     const browser = await launchBrowser();
     const context = await createBrowserContext(browser);
     const page = await createPage(context);
+    console.log("🌍 Navigating to product URL...");
 
-    await page.goto(url, { waitUntil: "networkidle" });
+    page.setDefaultTimeout(0);
+    page.setDefaultNavigationTimeout(0);
+
+    await page.goto(url, {
+      waitUntil: "domcontentloaded",
+      timeout: 0,
+    });
+
+    await page.waitForTimeout(3000);
+
+    console.log("✅ Page loaded successfully");
 
     const productVariants = await parseProduct(page, url);
     allRecords.push(...productVariants);
