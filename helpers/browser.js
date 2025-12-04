@@ -3,7 +3,7 @@ import { chromium } from "playwright";
 // Browser configuration constants
 const BROWSER_CONFIG = {
   LAUNCH_OPTIONS: {
-    headless: true,
+    headless: false,
     timeout: 12000,
     channel: 'chrome', // ✅ التعديل الأساسي: استخدام Chrome المثبت مسبقاً
     args: [

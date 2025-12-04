@@ -39,7 +39,8 @@ async function start() {
     await browser.close();
   }
 
-  saveToExcel("products.xlsx", allRecords);
+  saveToExcel("products", allRecords);
+
 }
 
 start();
