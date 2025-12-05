@@ -38,6 +38,8 @@ async function start() {
 
     await browser.close();
   }
+  console.log("📊 Records collected:", allRecords.length);
+console.log(allRecords);
 
   saveToExcel("products", allRecords);
 

@@ -2,30 +2,32 @@ import * as XLSX from "xlsx";
 import fs from "fs";
 import path from "path";
 
-// Create output folder if it doesn't exist
+// Create output folder if not exists
 const outputDir = "./output";
 if (!fs.existsSync(outputDir)) {
-  fs.mkdirSync(outputDir);
+  fs.mkdirSync(outputDir, { recursive: true });
 }
 
-export function saveToExcel(filenamePrefix, data) {
+export function saveToExcel(prefix, data) {
+  if (!data || data.length === 0) {
+    console.log("⚠️ No data to save!");
+    return;
+  }
+
+  // Create workbook + sheet
   const workbook = XLSX.utils.book_new();
   const sheet = XLSX.utils.json_to_sheet(data);
   XLSX.utils.book_append_sheet(workbook, sheet, "Products");
 
-  // generate timestamp
+  // timestamp name
   const now = new Date();
-  const timestamp = now
-    .toISOString()
-    .replace(/T/, "_")
-    .replace(/\..+/, "")
-    .replace(/:/g, "-");
+  const timestamp = now.toISOString().replace(/[:.]/g, "-");
 
-  const filename = `${filenamePrefix}_${timestamp}.csv`;
-  const fullPath = path.join(outputDir, filename);
+  const fileName = `${prefix}_${timestamp}.csv`;
+  const filePath = path.join(outputDir, fileName);
 
   // Write CSV
-  XLSX.writeFile(workbook, fullPath, { bookType: "csv" });
+  XLSX.writeFile(workbook, filePath, { bookType: "csv" });
 
-  console.log(`📁 Saved CSV file: ${fullPath}`);
+  console.log(`✅ File saved successfully: ${filePath}`);
 }

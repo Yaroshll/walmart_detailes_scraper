@@ -4,6 +4,7 @@ export async function parseProduct(page, url) {
     .locator('a[data-dca-name="ItemBrandLink"]')
     .innerText()
     .catch(() => "");
+    console.log(brand);
 
   // ===== TITLE =====
   const rawTitle = await page
@@ -14,7 +15,7 @@ export async function parseProduct(page, url) {
 
   // ===== HANDLE =====
   const handle = rawTitle.replace(/\s+/g, "-").trim();
-
+   console.log(handle);
   // ===== DESCRIPTION BODY (HTML UL) =====
   let bodyHtml = "";
   if ((await page.locator("#product-description-atf ul").count()) > 0) {
@@ -32,10 +33,13 @@ export async function parseProduct(page, url) {
   }
 
   // ===== VARIANTS SECTION =====
-// ========== VARIANTS NEW WAY — SAFE, FAST, 100% WORKS ==========
+/// ===== VARIANTS SECTION =====
 const variants = [];
 
-// get all variant inputs (radio buttons)
+// wait for variant inputs
+await page.waitForSelector('div[data-testid="variant-tile"] input');
+
+// get all variant inputs
 const inputs = await page.$$eval(
   'div[data-testid="variant-tile"] input',
   els => els.map(e => ({ id: e.id, value: e.value }))
@@ -49,23 +53,29 @@ const optionName = await page.locator('.mid-gray.mb2 span.b')
 
 // loop through variants
 for (const v of inputs) {
-  
-  // switch variant without clicking UI
+
+  // JS click bypass overlay
   await page.evaluate((id) => {
-    document.getElementById(id)?.click();
+    const el = document.getElementById(id);
+    if (el) {
+      el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      el.checked = true;
+    }
   }, v.id);
 
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(1500);
 
-  // collect image
-  const imageSrc = await page.locator('img[data-testid="hero-image"]').getAttribute("src");
+  // get image
+  const imageSrc = await page
+    .locator('img[data-testid="hero-image"]')
+    .getAttribute("src")
+    .catch(() => "");
 
-  // collect price
+  // get price
   let price = await page
     .locator('[data-testid="price-display"] span')
     .innerText()
     .catch(() => "");
-
   price = price.replace("$", "").trim();
 
   variants.push({
@@ -81,6 +91,5 @@ for (const v of inputs) {
   });
 }
 
-
-  return variants;
+return variants;
 }
